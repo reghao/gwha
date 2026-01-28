@@ -1,0 +1,67 @@
+groups:
+- name: example
+  rules:
+  # Alert for any instance that is unreachable for >5 minutes.
+  - alert: InstanceDown
+    expr: up == 0
+    for: 5m
+    labels:
+      severity: page
+    annotations:
+      summary: "Instance {{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes."
+  # Alert for any instance that has a median request latency >1s.
+  - alert: APIHighRequestLatency
+    expr: api_http_request_latencies_second{quantile="0.5"} > 1
+    for: 10m
+    annotations:
+      summary: "High request latency on {{ $labels.instance }}"
+      description: "{{ $labels.instance }} has a median request latency above 1s (current value: {{ $value }}s)"
+
+- name: Rabbitmq-运行状态
+  rules:
+  - alert: Rabbitmq-down
+    expr: rabbitmq_up{job='RabbitMQ'} != 1
+    labels:
+      status: High
+      team: Rabbitmq_monitor
+    annotations:
+      description: "Instance: {{ $labels.instance }} is Down ! ! !"
+      value: '{{ $value }}'
+      summary:  "The host node is down"
+
+- name: Rabbitmq disk free limit
+  rules:
+  - alert: Rabbitmq disk free limit   status
+    expr: rabbitmq_node_disk_free{job='RabbitMQ'} / 1024 / 1024  <= rabbitmq_node_disk_free_limit{job='RabbitMQ'} / 1024 / 1024 + 200
+    labels:
+      status: High
+      team: Rabbitmq_monitor
+    annotations:
+      description: "Instance: {{ $labels.instance }} the rmq free disk is to low ! ! !"
+      value: '{{ $value }} MB'
+      summary:  "The rmq free disk too low"
+      
+- name: RabbitMQ-内存使用>300MB
+  rules:
+  - alert: RabbitMQ-内存使用>300MB   status
+    expr: rabbitmq_node_mem_used{job='RabbitMQ'} /1024 /1024 > 300
+    labels:
+      status: High
+      team: Rabbitmq_monitor
+    annotations:
+      description: "Instance: {{ $labels.instance }} the rabbitmq use memory is to High ! ! !"
+      value: '{{ $value }} MB'
+      summary:  "the rabbitmq use memory is to High"
+      
+- name: RabbitMQ-没有ACK应答队列>0
+  rules:
+  - alert: RabbitMQ-unack>0   status
+    expr: rabbitmq_queue_messages_unacknowledged_global{job='RabbitMQ'}  > 0
+    labels:
+      status: High
+      team: Rabbitmq_monitor
+    annotations:
+      description: "Instance: {{ $labels.instance }} the rabbitmq_queue_messages_unacknowledged_global > 0  ! ! !"
+      value: '{{ $value }} '
+      summary:  "the rabbitmq_queue_messages_unacknowledged_global > 0"
